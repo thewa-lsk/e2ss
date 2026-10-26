@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+
+	<Properties>
+		<Property name="setExceptionHandler" value="true" />
+		<Property name="writeFile" value="true"/>
+		<Property name="crashReportTitle" value="Gitybara" />
+	</Properties>
+
+	<Appenders>
+		<Console name="Console" target="SYSTEM_OUT">
+			<PatternLayout disableAnsi="false" noConsoleNoAnsi="false">
+				<Highlight>
+					<Level name="FATAL" color="bright_red" />
+					<Level name="ERROR" color="bright_red" />
+					<Level name="WARN" color="bright_yellow" />
+					<Level name="INFO" color="bright_green" />
+					<Level name="DEBUG" color="bright_blue" />
+					<Level name="TRACE" color="bright_black" />
+				</Highlight>
+				<Pattern>%style{[%d{yyyy-MM-dd HH:mm:ss}]}{bright_black} %style{[}{bright_black}%style{%t}{#938df2}%style{/}{bright_black}%highlight{%level}%style{]}{bright_black} %style{(%c{1})}{bright_cyan} %style{%msg}{white}%n</Pattern>
+			</PatternLayout>
+		</Console>
+	</Appenders>
+
+	<Loggers>
+		<Root level="INFO">
+			<AppenderRef ref="Console" />
+		</Root>
+	</Loggers>
+
+</Configuration>
