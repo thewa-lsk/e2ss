@@ -5,8 +5,8 @@
 	"sheets": [
 		{
 			"id": 1,
-			"source": "multiple_table.xlsx",
-			"sheetId": "1CMP6faExxQ7x9s7aNOi53fdLe0q4JctkHMCYrDImW8A"
+			"source": "file.xlsx",
+			"sheetId": "googleSheetId"
 		}
 	]
 }
