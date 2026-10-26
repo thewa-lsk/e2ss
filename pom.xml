@@ -13,6 +13,13 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
+	<repositories>
+		<repository>
+			<id>cuddlecloud</id>
+			<url>https://libraries.sarenity.xyz/cuddlecloud</url>
+		</repository>
+	</repositories>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.apache.poi</groupId>
