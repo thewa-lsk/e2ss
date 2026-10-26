@@ -20,6 +20,8 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
@@ -39,27 +41,47 @@ import com.google.api.services.sheets.v4.model.Request;
 import com.google.api.services.sheets.v4.model.SheetProperties;
 import com.google.api.services.sheets.v4.model.Spreadsheet;
 import com.google.api.services.sheets.v4.model.ValueRange;
+import com.google.gson.Gson;
 
 public class ExcelToSheetsSync {
 
-	private static final String APP_NAME = "Excel To Sheets Sync";
-	private static final String CREDENTIALS_FILE = "credentials.json";
-	private static final String TOKEN_DIR = "tokens";
+	private static final Logger LOGGER = LoggerFactory.getLogger(ExcelToSheetsSync.class);
+	private static final String DEFAULT_CONFIG_FILE = "config.json";
+	public static final String appName = "Excel To Sheets Sync";
 
-	private static Sheets createSheetsService() throws IOException, GeneralSecurityException {
+	public static class Config {
+		public String credentialsFile = "credentials.json";
+		public String tokenDir = "tokens";
+		public int port = 12751;
+		public List<SheetMapping> sheets = new ArrayList<>();
+	}
+
+	public static class SheetMapping {
+		public int id;
+		public String source;
+		public String sheetId;
+	}
+
+	private static Config loadConfig(String configPath) throws IOException {
+		try (Reader reader = Files.newBufferedReader(Path.of(configPath))) {
+			return new Gson().fromJson(reader, Config.class);
+		}
+	}
+
+	private static Sheets createSheetsService(Config config) throws IOException, GeneralSecurityException {
 
 		NetHttpTransport transport = new NetHttpTransport();
 
 		GoogleClientSecrets clientSecrets;
-		try (Reader reader = Files.newBufferedReader(Path.of(CREDENTIALS_FILE))) {
+		try (Reader reader = Files.newBufferedReader(Path.of(config.credentialsFile))) {
 			clientSecrets = GoogleClientSecrets.load(GsonFactory.getDefaultInstance(), reader);
 		}
 
-		GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(transport, GsonFactory.getDefaultInstance(), clientSecrets, Collections.singletonList(SheetsScopes.SPREADSHEETS)).setDataStoreFactory(new FileDataStoreFactory(new File(TOKEN_DIR))).setAccessType("offline").build();
+		GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(transport, GsonFactory.getDefaultInstance(), clientSecrets, Collections.singletonList(SheetsScopes.SPREADSHEETS)).setDataStoreFactory(new FileDataStoreFactory(new File(config.tokenDir))).setAccessType("offline").build();
 
-		Credential credential = new AuthorizationCodeInstalledApp(flow, new LocalServerReceiver.Builder().setPort(8888).build()).authorize("user");
+		Credential credential = new AuthorizationCodeInstalledApp(flow, new LocalServerReceiver.Builder().setPort(config.port).build()).authorize("user");
 
-		return new Sheets.Builder(transport, GsonFactory.getDefaultInstance(), credential).setApplicationName(APP_NAME).build();
+		return new Sheets.Builder(transport, GsonFactory.getDefaultInstance(), credential).setApplicationName(appName).build();
 	}
 
 	private static Map<String, List<List<Object>>> readExcel(String excelPath) throws IOException {
@@ -103,7 +125,7 @@ public class ExcelToSheetsSync {
 		}
 
 		if (result.isEmpty()) {
-			throw new IllegalArgumentException("Excel ไม่มี worksheet");
+			throw new IllegalArgumentException("Excel file contains no worksheets");
 		}
 
 		return result;
@@ -113,11 +135,9 @@ public class ExcelToSheetsSync {
 		return "'" + name.replace("'", "''") + "'";
 	}
 
-	public static void sync(String excelPath, String spreadsheetId) throws IOException, GeneralSecurityException {
+	public static void sync(Sheets service, String excelPath, String spreadsheetId) throws IOException {
 
 		Map<String, List<List<Object>>> excelSheets = readExcel(excelPath);
-
-		Sheets service = createSheetsService();
 
 		Spreadsheet spreadsheet = service.spreadsheets().get(spreadsheetId).setFields("sheets.properties").execute();
 
@@ -182,22 +202,30 @@ public class ExcelToSheetsSync {
 				service.spreadsheets().values().update(spreadsheetId, range + "!A1", body).setValueInputOption("RAW").execute();
 			}
 
-			System.out.println("Synced sheet: " + name);
+			LOGGER.info("Synced sheet: " + name);
 		}
 
-		System.out.println("Sync complete.");
-		System.out.println("Spreadsheet: https://docs.google.com/spreadsheets/d/" + spreadsheetId + "/edit");
+		LOGGER.info("Sync complete: " + excelPath);
+		LOGGER.info("Spreadsheet: https://docs.google.com/spreadsheets/d/" + spreadsheetId + "/edit");
 	}
 
 	public static void main(String[] args) throws Exception {
-		// https://docs.google.com/spreadsheets/d/1CMP6faExxQ7x9s7aNOi53fdLe0q4JctkHMCYrDImW8A/edit
-		String excelPath = "multiple_table.xlsx";
+		String configPath = DEFAULT_CONFIG_FILE;
 		if (args.length > 0) {
-			excelPath = args[0];
+			configPath = args[0];
 		}
 
-		String spreadsheetId = "1CMP6faExxQ7x9s7aNOi53fdLe0q4JctkHMCYrDImW8A";
+		Config config = loadConfig(configPath);
+		if (config.sheets == null || config.sheets.isEmpty()) {
+			LOGGER.info("No sheets configured in: " + configPath);
+			return;
+		}
 
-		sync(excelPath, spreadsheetId);
+		Sheets service = createSheetsService(config);
+
+		for (SheetMapping mapping : config.sheets) {
+			LOGGER.info("Syncing [#" + mapping.id + "] " + mapping.source + " -> " + mapping.sheetId);
+			sync(service, mapping.source, mapping.sheetId);
+		}
 	}
 }

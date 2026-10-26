@@ -1,2 +1,7 @@
 target
 .settings
+credentials.json
+tokens
+crash-reports
+logs
+multiple_table.xlsx

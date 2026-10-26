@@ -4,7 +4,7 @@
 	<Properties>
 		<Property name="setExceptionHandler" value="true" />
 		<Property name="writeFile" value="true"/>
-		<Property name="crashReportTitle" value="Gitybara" />
+		<Property name="crashReportTitle" value="E2SS" />
 	</Properties>
 
 	<Appenders>
