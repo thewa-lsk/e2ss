@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>xyz.cuddlecloud.e2ss</groupId>
 	<artifactId>e2ss</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>26.10.29.1</version>
 
 	<properties>
 		<maven.compiler.source>25</maven.compiler.source>
@@ -49,6 +49,12 @@
 			<groupId>xyz.cuddlecloud.javax.logging</groupId>
 			<artifactId>Loggy4J</artifactId>
 			<version>2026.9.15.3</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-to-slf4j</artifactId>
+			<version>2.26.1</version>
 		</dependency>
 	</dependencies>
 
